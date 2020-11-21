@@ -12,14 +12,14 @@ We have to extract the data based on the view count of the posts. And also we ca
 
 The query for first set of `50000` records goes like:
 ```sql
-select * from posts where viewcount >= 111930
+select top 50000 * from posts where viewcount >= 111930
 ```
 Similarly queries for 2nd, 3rd and 4th set of data will be the following respectively.
 
 ```sql
-select * from posts where viewcount < 111930 and viewcount >= 65887
-select * from posts where viewcount < 65887 and viewcount >= 47039
-select * from posts where viewcount < 47039 and viewcount >= 36590
+select top 50000 * from posts where viewcount < 111930 and viewcount >= 65887
+select top 50000 * from posts where viewcount < 65887 and viewcount >= 47039
+select top 50000 * from posts where viewcount < 47039 and viewcount >= 36590
 ```
 The same queries are mentioned in the `data_fetch.sql` file in the project. 
 #### Cleaning the data using `R` language:
