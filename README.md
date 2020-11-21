@@ -1,13 +1,13 @@
 # Stack Exchange Data Analysis
-##### by Rajesh Kumar Reddy Kummetha, DCU Student Number: 20211568
+#### by Rajesh Kumar Reddy Kummetha, DCU Student Number: 20211568
 In this project we are going perform some computing tasks on the data extracted from **Stack Exchange** website which is a questions & answers platform of any kind. In this project `PuTTY` software is used as an `SSH` client of Google Cloud Platform's virtual machine instance.
-#### The tasks we are going to perform are:
+### The tasks we are going to perform are:
 1. Get data from Stack Exchange
 2. Load them with PIG
 3. Query them with Hive
 4. Calculate TF-IDF with Hive
 
-#### 1. Get data from Stack Exchange
+### 1. Get data from Stack Exchange
 We have to extract the data based on the view count of the posts. And also we can only download up to `50000` records at a time. So, we have to run the query several times to get required `200000` records. We can extract the data from the website [http://data.stackexchange.com/stackoverflow/query/new](http://data.stackexchange.com/stackoverflow/query/new) using below quries.
 
 The query for first set of `50000` records goes like:
@@ -22,7 +22,7 @@ select * from posts where viewcount < 65887 and viewcount >= 47039
 select * from posts where viewcount < 47039 and viewcount >= 36590
 ```
 The same queries are mentioned in the `data_fetch.sql` file in the project. 
-##### Cleaning the data using `R` language:
+#### Cleaning the data using `R` language:
 As the raw data is not ready for analysis, we have to remove `comma(,)`, `\n`, `\r`, `\t` from body, title, tags columns as they make the data messy and complex to perform analysis. After cleaning the data all 4 datasets are merged. The `R` script to perform cleaning & merging is:
 ````R
 #import dplyr package to modify the columns
@@ -50,7 +50,7 @@ The final exported file consisting total stack exchange data is uploaded to Goog
 ````
 hdfs dfs -put /input/stack_exchange_final.csv /home/rajesh.kumar.reddy.kummetha/stack_exchange_final.csv
 ````
-#### 2. Load them with PIG
+### 2. Load them with PIG
 Now, as the file is ready, we can load the data to PIG using the below script. We used default `piggybank.jar` which contains `CSVExcelStorage()` function to load the `csv` file into PIG.
 ````pig
 register '/usr/lib/pig/piggybank.jar';
@@ -72,8 +72,10 @@ After the execution of this script, the data is stored into HDFS. This script is
 ````
 pig -x mapreduce pig_script.pig
 ````
+Pig execution gives the output as shown in the below picture. Read successfully `200001` and wrote `194862` records as we removed null values from `OwnerUserId` column.
 
-#### 3. Query them with Hive
+![PIG Output image](/screenshots/pig/pig_execution_end.png)
+### 3. Query them with Hive
 We have to enter into the hive query execution environment in order to execute any query using the below command.
 ````
 sudo hive
@@ -96,7 +98,10 @@ select owneruserid, sum(score) as OverallScore from data group by OwnerUserId or
 select count (distinct owneruserid) from data where (lower(body) like '%hadoop%' or lower(title) like '%hadoop%' or lower(tags) like '%hadoop%');
 ````
 The queries performed are included in the `hive_queries.sql` file in the project.
-#### 4 Calculate TF-IDF with Hive
+Execution picture for Question 1 is displayed below. However, pictures for other questions can be found in `screenshots` directory of this project.
+
+![Hive question 1 image](/screenshots/hive/hive_question1.png)
+### 4 Calculate TF-IDF with Hive
 TF-IDF (term frequency–inverse document frequency) is a numerical statistic that is intended to reflect how important a word is to a document in a collection (source: [Wikipedia tf-idf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf)). We used `hivemall` in order to compute TF-IDF per-user. The documentation for `hivemall` can be found at [TF-IDF Term Weighting Hivemall User Manual](https://hivemall.incubator.apache.org/userguide/ft_engineering/tfidf.html) and [TFIDF Calculation](https://github.com/myui/hivemall/wiki/TFIDF-calculation). The information how to include `hivemall` in hive can be found at [Hivemall Installation](https://github.com/myui/hivemall/wiki/Installation). Below `hivemall` queries are executed to perform TF-IDF.
 
 ````
@@ -120,6 +125,9 @@ create or replace view tf as select * from (select ownerUserId, eachword, freq, 
 select * from tf;
 ````
 The above queries are included in the `tfidf.sql` file in the project.
+The picture of output of `TF-IDF` is shown below. And other `TF-IDF` related pictures can be found in `screenshots` directory of this project.
+
+![TF-IDF output image](/screenshots/tfidf/tfidf_output_2.png)
 #
 
 > All screenshots of above all code executions are included in the `screenshots` folder in the project.
