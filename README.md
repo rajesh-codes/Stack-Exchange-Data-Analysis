@@ -8,18 +8,18 @@ In this project we are going perform some computing tasks on the data extracted 
 4. Calculate TF-IDF with Hive
 
 ### 1. Get data from Stack Exchange
-We have to extract the data based on the view count of the posts. And also we can only download up to `50000` records at a time. So, we have to run the query several times to get required `200000` records. We can extract the data from the website [http://data.stackexchange.com/stackoverflow/query/new](http://data.stackexchange.com/stackoverflow/query/new) using below quries.
+We have to extract the data based on the view count of the posts. And also we can only download up to `50000` records at a time. So, we have to run the query several times to get required `200000` records. We can extract the data from the website [http://data.stackexchange.com/stackoverflow/query/new](http://data.stackexchange.com/stackoverflow/query/new) using below quries. We have to find the range of `viewcount` to get exactly `50000` records by executing the query multiple times.
 
-The query for first set of `50000` records goes like:
+So, the query for the first set of `50000` records goes like:
 ```sql
-select top 50000 * from posts where viewcount >= 111930
+select * from posts where viewcount >= 111930
 ```
 Similarly queries for 2nd, 3rd and 4th set of data will be the following respectively.
 
 ```sql
-select top 50000 * from posts where viewcount < 111930 and viewcount >= 65887
-select top 50000 * from posts where viewcount < 65887 and viewcount >= 47039
-select top 50000 * from posts where viewcount < 47039 and viewcount >= 36590
+select * from posts where viewcount < 111930 and viewcount >= 65887
+select * from posts where viewcount < 65887 and viewcount >= 47039
+select * from posts where viewcount < 47039 and viewcount >= 36590
 ```
 The same queries are mentioned in the `data_fetch.sql` file in the project. 
 #### Cleaning the data using `R` language:
@@ -81,7 +81,7 @@ We have to enter into the hive query execution environment in order to execute a
 sudo hive
 ````
 After that the data which is present in the HDFS is loaded into the hive table `data` and found answers for several questions using below queries.
-````sql
+````hive
 -- create new table
 create table data (Id int, Score int, Body String, OwnerUserId Int, Title String, Tags String) row format delimited FIELDS TERMINATED BY ',';
 
@@ -97,14 +97,14 @@ select owneruserid, sum(score) as OverallScore from data group by OwnerUserId or
 -- Question 3: The number of distinct users, who used the word "hadoop" in one of their posts
 select count (distinct owneruserid) from data where (lower(body) like '%hadoop%' or lower(title) like '%hadoop%' or lower(tags) like '%hadoop%');
 ````
-The queries performed are included in the `hive_queries.sql` file in the project.
+The queries performed are included in the `hive_queries.hive` file in the project.
 Execution picture for Question 1 is displayed below. However, pictures for other questions can be found in `screenshots` directory of this project.
 
 ![Hive question 1 image](/screenshots/hive/hive_question1.png)
 ### 4 Calculate TF-IDF with Hive
-TF-IDF (term frequency–inverse document frequency) is a numerical statistic that is intended to reflect how important a word is to a document in a collection (source: [Wikipedia tf-idf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf)). We used `hivemall` in order to compute TF-IDF per-user. The documentation for `hivemall` can be found at [TF-IDF Term Weighting Hivemall User Manual](https://hivemall.incubator.apache.org/userguide/ft_engineering/tfidf.html) and [TFIDF Calculation](https://github.com/myui/hivemall/wiki/TFIDF-calculation). The information how to include `hivemall` in hive can be found at [Hivemall Installation](https://github.com/myui/hivemall/wiki/Installation). Below `hivemall` queries are executed to perform TF-IDF.
+TF-IDF (term frequency–inverse document frequency) is a numerical statistic that is intended to reflect how important a word is to a document in a collection (source: [Wikipedia tf-idf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf)). We used `hivemall` in order to compute TF-IDF per-user. The documentation for `hivemall` can be found at [TF-IDF Term Weighting Hivemall User Manual](https://hivemall.incubator.apache.org/userguide/ft_engineering/tfidf.html) and [TFIDF Calculation](https://github.com/myui/hivemall/wiki/TFIDF-calculation). The information how to include `hivemall` in hive can be found at [Hivemall Installation](https://github.com/myui/hivemall/wiki/Installation). And a part of the query is taken from [stackoverflow](https://stackoverflow.com/a/176985) site which does the trick of giving rank to the frequency value. Below `hivemall` queries are executed to perform TF-IDF.
 
-````
+````hive
 -- Question 4: Using Hive calculate the per-user TF-IDF (just submit the top 10 terms for each of the top 10 users from Question 2)
 
 add jar /home/rajesh.kumar.reddy.kummetha/hivemall-core-0.4.2-rc.2-with-dependencies.jar;
@@ -114,17 +114,19 @@ create temporary macro max2(x INT, y INT) if(x>y,x,y);
 
 create temporary macro tfidf(tf FLOAT, df_t INT, n_docs INT) tf * (log(10, CAST(n_docs as FLOAT)/max2(1,df_t)) + 1.0);
 
-create table topUsers as select ownerUserId, Title,score from data order by Score desc limit 10;
+create table topUsers as select owneruserid, sum(score) as OverallScore from data group by OwnerUserId order by OverallScore desc limit 10;
 
-create or replace view topUsersExplode as select ownerUserId, eachword from topUsers LATERAL VIEW explode(tokenize(Title, True)) t as eachword where not is_stopword(eachword);
+create table topUsers1 as select d.OwnerUserID,title from data d join topUsers t on  d.OwnerUserID = t.OwnerUserID;
+
+create or replace view topUsersExplode as select ownerUserId, eachword from topUsers1 LATERAL VIEW explode(tokenize(Title, True)) t as eachword where not is_stopword(eachword);
 
 create or replace view tf_temp as select ownerUserid, eachword, freq from (select ownerUserId, tf(eachword) as word2freq from topUsersExplode group by ownerUserId) t LATERAL VIEW explode(word2freq) t2 as eachword, freq;
 
 create or replace view tf as select * from (select ownerUserId, eachword, freq, rank() over (partition by ownerUserId order by freq desc) as rank from tf_temp ) t where rank < 10;
 
-select * from tf;
+select owneruserid,eachword,freq from tf;
 ````
-The above queries are included in the `tfidf.sql` file in the project.
+The above queries are included in the `tfidf.hive` file in the project.
 The picture of output of `TF-IDF` is shown below. And other `TF-IDF` related pictures can be found in `screenshots` directory of this project.
 
 ![TF-IDF output image](/screenshots/tfidf/tfidf_output_2.png)
