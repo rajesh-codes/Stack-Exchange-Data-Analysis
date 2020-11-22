@@ -129,7 +129,7 @@ select owneruserid,eachword,freq from tf;
 The above queries are included in the `tfidf.hive` file in the project.
 The picture of output of `TF-IDF` is shown below. And other `TF-IDF` related pictures can be found in `screenshots` directory of this project.
 
-![TF-IDF output image](/screenshots/tfidf/tfidf_output_2.png)
+![TF-IDF output image](/screenshots/tfidf/tfidf_output_out.png)
 #
 
 > All screenshots of above all code executions are included in the `screenshots` folder in the project.
