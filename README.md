@@ -81,7 +81,7 @@ We have to enter into the hive query execution environment in order to execute a
 sudo hive
 ````
 After that the data which is present in the HDFS is loaded into the hive table `data` and found answers for several questions using below queries.
-````hive
+````hql
 -- create new table
 create table data (Id int, Score int, Body String, OwnerUserId Int, Title String, Tags String) row format delimited FIELDS TERMINATED BY ',';
 
@@ -97,14 +97,14 @@ select owneruserid, sum(score) as OverallScore from data group by OwnerUserId or
 -- Question 3: The number of distinct users, who used the word "hadoop" in one of their posts
 select count (distinct owneruserid) from data where (lower(body) like '%hadoop%' or lower(title) like '%hadoop%' or lower(tags) like '%hadoop%');
 ````
-The queries performed are included in the `hive_queries.hive` file in the project.
+The queries performed are included in the `hive_queries.hql` file in the project.
 Execution picture for Question 1 is displayed below. However, pictures for other questions can be found in `screenshots` directory of this project.
 
 ![Hive question 1 image](/screenshots/hive/hive_question1.png)
 ### 4 Calculate TF-IDF with Hive
 TF-IDF (term frequency–inverse document frequency) is a numerical statistic that is intended to reflect how important a word is to a document in a collection (source: [Wikipedia tf-idf](https://en.wikipedia.org/wiki/Tf%E2%80%93idf)). We used `hivemall` in order to compute TF-IDF per-user. The documentation for `hivemall` can be found at [TF-IDF Term Weighting Hivemall User Manual](https://hivemall.incubator.apache.org/userguide/ft_engineering/tfidf.html) and [TFIDF Calculation](https://github.com/myui/hivemall/wiki/TFIDF-calculation). The information how to include `hivemall` in hive can be found at [Hivemall Installation](https://github.com/myui/hivemall/wiki/Installation). And a part of the query is taken from [stackoverflow](https://stackoverflow.com/a/176985) site which does the trick of giving rank to the frequency value. Below `hivemall` queries are executed to perform TF-IDF.
 
-````hive
+````hql
 -- Question 4: Using Hive calculate the per-user TF-IDF (just submit the top 10 terms for each of the top 10 users from Question 2)
 
 add jar /home/rajesh.kumar.reddy.kummetha/hivemall-core-0.4.2-rc.2-with-dependencies.jar;
@@ -126,7 +126,7 @@ create or replace view tf as select * from (select ownerUserId, eachword, freq, 
 
 select owneruserid,eachword,freq from tf;
 ````
-The above queries are included in the `tfidf.hive` file in the project.
+The above queries are included in the `tfidf.hql` file in the project.
 The picture of output of `TF-IDF` is shown below. And other `TF-IDF` related pictures can be found in `screenshots` directory of this project.
 
 ![TF-IDF output image](/screenshots/tfidf/tfidf_output_out.png)
